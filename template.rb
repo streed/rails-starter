@@ -57,15 +57,14 @@ CONFIG = {
   cors_origins:    prompt("Production CORS origins (comma-separated)",   default: "https://example.com"),
   mail_from:       prompt("Default mail From address",                   default: "no-reply@#{app_name.tr('_', '-')}.com"),
   resend_api_key:  prompt("Resend API key (leave blank to fill later)",  default: "re_xxx", secret: true),
-  stripe_pk:       prompt("Stripe publishable key (test)",               default: "pk_test_xxx", secret: true),
-  stripe_sk:       prompt("Stripe secret key (test)",                    default: "sk_test_xxx", secret: true),
-  stripe_whsec:    prompt("Stripe webhook signing secret",               default: "whsec_xxx",   secret: true),
-  sentry_dsn:      prompt("Sentry DSN (leave blank to skip)",            default: "",            secret: true),
-  admin_email:     prompt("Seed admin email",                            default: "admin@example.com"),
-  admin_password:  prompt("Seed admin password (min 6 chars)",           default: "password", secret: true),
-  user_email:      prompt("Seed regular user email",                     default: "user@example.com"),
-  user_password:   prompt("Seed regular user password",                  default: "password", secret: true)
+  sentry_dsn:      prompt("Sentry DSN (leave blank to skip)",            default: "",            secret: true)
 }.freeze
+
+# Seed user defaults — edit db/seeds.rb after generation if you want to change these.
+SEED_ADMIN_EMAIL    = "admin@example.com"
+SEED_ADMIN_PASSWORD = "password"
+SEED_USER_EMAIL     = "user@example.com"
+SEED_USER_PASSWORD  = "password"
 
 say "\nConfiguration captured. Generating app...\n", :green
 
@@ -141,10 +140,12 @@ file ".env.development", <<~ENV
   APP_HOST=#{CONFIG[:app_host_dev]}
   MAIL_FROM=#{CONFIG[:mail_from]}
   RESEND_API_KEY=#{CONFIG[:resend_api_key]}
-  STRIPE_PUBLISHABLE_KEY=#{CONFIG[:stripe_pk]}
-  STRIPE_SECRET_KEY=#{CONFIG[:stripe_sk]}
-  STRIPE_WEBHOOK_SECRET=#{CONFIG[:stripe_whsec]}
   SENTRY_DSN=#{CONFIG[:sentry_dsn]}
+
+  # Stripe — fill these in once your product is set up in the Stripe dashboard
+  STRIPE_PUBLISHABLE_KEY=
+  STRIPE_SECRET_KEY=
+  STRIPE_WEBHOOK_SECRET=
 ENV
 
 file ".env.test", <<~ENV
@@ -279,7 +280,22 @@ after_bundle do
   RUBY
 
   create_file "config/initializers/stripe.rb", <<~RUBY
-    Stripe.api_key = ENV["STRIPE_SECRET_KEY"]
+    # Stripe configuration.
+    #
+    # To wire up payments:
+    #   1. Create your product(s) and price(s) in the Stripe dashboard.
+    #   2. Grab your API keys from https://dashboard.stripe.com/apikeys
+    #   3. Fill in the env vars below in .env.development (and your prod secrets):
+    #        STRIPE_PUBLISHABLE_KEY=pk_test_...
+    #        STRIPE_SECRET_KEY=sk_test_...
+    #        STRIPE_WEBHOOK_SECRET=whsec_...      # from your webhook endpoint
+    #   4. Restart the server.
+    #
+    # Until those are set, Stripe API calls will raise — that's intentional;
+    # it surfaces missing config loudly instead of silently no-op'ing.
+
+    Stripe.api_key = ENV["STRIPE_SECRET_KEY"] if ENV["STRIPE_SECRET_KEY"].present?
+
     Rails.configuration.stripe = {
       publishable_key: ENV["STRIPE_PUBLISHABLE_KEY"],
       secret_key:      ENV["STRIPE_SECRET_KEY"],
@@ -567,8 +583,8 @@ after_bundle do
     end
 
     puts "Seeding users..."
-    upsert_user!(email: #{CONFIG[:admin_email].inspect}, password: #{CONFIG[:admin_password].inspect}, name: "Admin User", admin: true)
-    upsert_user!(email: #{CONFIG[:user_email].inspect},  password: #{CONFIG[:user_password].inspect}, name: "Regular User")
+    upsert_user!(email: #{SEED_ADMIN_EMAIL.inspect}, password: #{SEED_ADMIN_PASSWORD.inspect}, name: "Admin User", admin: true)
+    upsert_user!(email: #{SEED_USER_EMAIL.inspect},  password: #{SEED_USER_PASSWORD.inspect}, name: "Regular User")
 
     if Rails.env.development?
       5.times do
@@ -618,8 +634,8 @@ after_bundle do
     bin/rails db:seed
     echo
     echo "Setup complete. Seeded users:"
-    echo "  #{CONFIG[:admin_email]} / #{CONFIG[:admin_password]}  (admin)"
-    echo "  #{CONFIG[:user_email]} / #{CONFIG[:user_password]}  (regular)"
+    echo "  #{SEED_ADMIN_EMAIL} / #{SEED_ADMIN_PASSWORD}  (admin)"
+    echo "  #{SEED_USER_EMAIL} / #{SEED_USER_PASSWORD}  (regular)"
   BASH
   chmod "bin/dev-setup", 0755
 
@@ -636,8 +652,8 @@ after_bundle do
   say "\n========================================================", :green
   say " #{app_name} is ready.", :green
   say "========================================================", :green
-  say " Seeded admin: #{CONFIG[:admin_email]} / #{CONFIG[:admin_password]}"
-  say " Seeded user:  #{CONFIG[:user_email]} / #{CONFIG[:user_password]}"
+  say " Seeded admin: #{SEED_ADMIN_EMAIL} / #{SEED_ADMIN_PASSWORD}"
+  say " Seeded user:  #{SEED_USER_EMAIL} / #{SEED_USER_PASSWORD}"
   say ""
   say " Next steps:"
   say "   cd #{app_name}"
