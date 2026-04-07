@@ -23,13 +23,37 @@ maintainable code in the resulting app.
 
 ## Usage
 
+Hosted at **https://github.com/streed/rails-starter**. Use the raw URL — no clone needed:
+
 ```bash
 rails new myapp \
   --database=postgresql \
   --skip-solid \
   --skip-test \
   --css=tailwind \
-  -m /path/to/rails-starter/template.rb
+  -m https://raw.githubusercontent.com/streed/rails-starter/main/template.rb
+```
+
+To take all defaults silently, append `-- --skip`:
+
+```bash
+rails new myapp -d postgresql --skip-solid --skip-test \
+  -m https://raw.githubusercontent.com/streed/rails-starter/main/template.rb \
+  -- --skip
+```
+
+Or from a local clone (when iterating on the template itself):
+
+```bash
+git clone git@github.com:streed/rails-starter.git
+rails new myapp -d postgresql --skip-solid --skip-test -m ./rails-starter/template.rb
+```
+
+Handy shell alias:
+
+```bash
+alias new-rails='rails new --database=postgresql --skip-solid --skip-test --css=tailwind -m https://raw.githubusercontent.com/streed/rails-starter/main/template.rb'
+# then: new-rails myapp
 ```
 
 Notes:

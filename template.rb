@@ -9,7 +9,7 @@
 #     --skip-test \
 #     --javascript=importmap \
 #     --css=tailwind \
-#     -m https://raw.githubusercontent.com/.../template.rb
+#     -m https://raw.githubusercontent.com/streed/rails-starter/main/template.rb
 #
 # Or from a local checkout:
 #   rails new myapp -d postgresql --skip-solid --skip-test -m ./template.rb
@@ -17,9 +17,9 @@
 RAILS_REQUIREMENT = ">= 8.0"
 
 def assert_minimum_rails_version
-  return if Gem::Requirement.new(RAILS_REQUIREMENT).satisfied_by?(Gem.loaded_specs["rails"].version)
+  return if Gem::Requirement.new(RAILS_REQUIREMENT).satisfied_by?(Gem::Version.new(Rails::VERSION::STRING))
 
-  raise "This template requires Rails #{RAILS_REQUIREMENT}. You are using #{Rails.version}."
+  raise "This template requires Rails #{RAILS_REQUIREMENT}. You are using #{Rails::VERSION::STRING}."
 end
 
 def assert_postgresql
